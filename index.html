@@ -129,7 +129,6 @@
         .result-table { font-size: 1.5rem; font-weight: bold; color: #ef5323; }
         .result-no-table { font-size: 1.1rem; color: #2f307c; font-weight: bold; line-height: 1.4; }
         
-        /* ข้อความสถานะการโหลดข้อมูล */
         #data-status {
             font-size: 0.8rem;
             color: #888;
@@ -137,8 +136,8 @@
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- นำเข้า Google Chart Loader สำหรับดึงข้อมูลจาก Sheet -->
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- เปลี่ยนมาใช้ PapaParse ซึ่งเสถียรที่สุดสำหรับการดึง CSV บน GitHub Pages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
@@ -208,53 +207,43 @@
     </div>
 
     <script>
-        // URL สำหรับบันทึกข้อมูล (อัปเดตเป็นลิงก์ล่าสุด)
+        // URL สำหรับบันทึกข้อมูลเข้า Google Sheets
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx8ZMQr5tNUz4v3P-NPkvzknpncSCppwQG2vfsVSjezP9RA29Dk7yWrr80K64H9jpH2/exec';
         
-        // URL สำหรับดึงข้อมูลรายชื่อจาก Google Sheets
-        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4X9Ko3pISDaG_s2afj1kU1ZKNCwWbqHilCH8uVNSJJV_NqCWiEEKKCvKD-63RxWTMLglJ9Dsu6VDW/pub?output=csv';
-        const sheetId = sheetUrl.split('/d/e/')[1].split('/')[0];
-        const jsonQueryUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/gviz/tq?tqx=out:json`;
+        // URL สำหรับดึงข้อมูลรายชื่อจาก Google Sheets (ลิงก์ CSV โดยตรง)
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4X9Ko3pISDaG_s2afj1kU1ZKNCwWbqHilCH8uVNSJJV_NqCWiEEKKCvKD-63RxWTMLglJ9Dsu6VDW/pub?output=csv';
 
-        let guestList = []; // จะถูกเติมข้อมูลอัตโนมัติจาก Google Sheets
+        let guestList = []; 
 
-        // ================= ระบบดึงข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ =================
-        google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(loadDataFromSheet);
+        // โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
+        window.onload = function() {
+            loadDataFromSheet();
+        };
 
         function loadDataFromSheet() {
-            fetch(jsonQueryUrl)
-                .then(response => response.text())
-                .then(data => {
-                    const jsonString = data.match(/google\.visualization\.Query\.setResponse\(([\s\S\w\W]*)\);/)[1];
-                    const jsonObj = JSON.parse(jsonString);
-                    const rows = jsonObj.table.rows;
-                    const cols = jsonObj.table.cols;
-                    
-                    guestList = rows.map(row => {
-                        let rawRow = {};
-                        row.c.forEach((cell, index) => {
-                            let colName = cols[index] && cols[index].label ? cols[index].label : 'col_' + index;
-                            rawRow[colName] = cell && cell.v !== null ? cell.v : '';
-                        });
-                        return normalizeData(rawRow);
-                    });
-                    
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    guestList = results.data.map(row => normalizeData(row));
                     document.getElementById('data-status').innerText = `✓ ฐานข้อมูลพร้อมใช้งาน (${guestList.length} รายชื่อ)`;
                     document.getElementById('data-status').style.color = '#28a745';
-                })
-                .catch(error => {
+                },
+                error: function(err) {
                     document.getElementById('data-status').innerText = '⚠ ไม่สามารถซิงค์ข้อมูลโต๊ะได้';
                     document.getElementById('data-status').style.color = '#dc3545';
-                });
+                    console.error("CSV Fetch Error:", err);
+                }
+            });
         }
 
-        // จัดการแปลงหัวข้อคอลัมน์ (รองรับทั้งภาษาไทยและอังกฤษ)
+        // แปลงหัวข้อคอลัมน์ (รองรับทั้งภาษาไทยและอังกฤษ)
         function normalizeData(rawRow) {
             let normalized = { firstName: '', lastName: '', table: '', phone: '' };
             for (let key in rawRow) {
                 let cleanKey = key.trim().toLowerCase();
-                let value = rawRow[key].toString().trim();
+                let value = rawRow[key] ? String(rawRow[key]).trim() : '';
 
                 if (cleanKey.includes('firstname') || cleanKey.includes('ชื่อจริง') || cleanKey === 'ชื่อ') {
                     normalized.firstName = value;
