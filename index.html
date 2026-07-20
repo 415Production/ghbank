@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลงทะเบียน & ค้นหาโต๊ะที่นั่ง</title>
+    <style>
+        /* ================= จัดการให้พอดีจอ 100% ================= */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden; 
+            background-color: #ef5323; 
+            font-family: 'Kanit', sans-serif, Arial;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            max-height: 12vh; 
+            max-width: 80%;
+            margin-bottom: 2vh;
+            object-fit: contain;
+        }
+
+        .container {
+            background: #ffffff; 
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 450px;
+            max-height: 80vh; 
+            overflow-y: auto; 
+            text-align: center;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .container::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* ================= สไตล์องค์ประกอบต่างๆ ================= */
+        h2 { color: #2f307c; margin-top: 0; margin-bottom: 5px; font-size: 1.6rem; }
+        p { color: #666666; font-size: 0.9rem; margin-bottom: 20px; }
+
+        .form-group { text-align: left; margin-bottom: 12px; }
+        label { font-weight: 600; color: #2f307c; display: block; margin-bottom: 5px; font-size: 0.9rem; }
+
+        input[type="text"], input[type="tel"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cccccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="tel"]:focus {
+            outline: none;
+            border-color: #ef5323; 
+        }
+
+        button.btn-primary {
+            width: 100%;
+            padding: 14px;
+            background-color: #2f307c; 
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+
+        button.btn-primary:hover { background-color: #1e1f59; }
+        button.btn-primary:disabled { background-color: #999999; cursor: not-allowed; }
+
+        button.btn-secondary {
+            width: 100%;
+            padding: 12px;
+            background-color: #ffffff;
+            color: #ef5323;
+            border: 2px solid #ef5323;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 5px;
+        }
+
+        button.btn-secondary:hover { background-color: #ef5323; color: white; }
+
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        .result-card {
+            background: #fff3f0;
+            border-left: 5px solid #ef5323;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 0 8px 8px 0;
+            text-align: left;
+            display: none; 
+            animation: fadeIn 0.4s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-name { font-size: 1rem; color: #555555; margin-bottom: 5px; }
+        .result-table { font-size: 1.5rem; font-weight: bold; color: #ef5323; }
+        .result-no-table { font-size: 1.1rem; color: #2f307c; font-weight: bold; line-height: 1.4; }
+        
+        /* ข้อความสถานะการโหลดข้อมูล */
+        #data-status {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 10px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- นำเข้า Google Chart Loader สำหรับดึงข้อมูลจาก Sheet -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+
+    <!-- รูปภาพโลโก้ ธอส -->
+    <img src="ธอส logo@4x.png" alt="โลโก้ ธอส" class="logo">
+
+    <!-- ================= หน้าที่ 1: เมนูหลัก ================= -->
+    <div class="container" id="menuView">
+        <h2>ยินดีต้อนรับ</h2>
+        <p>กรุณาเลือกรายการที่ต้องการทำรายการ</p>
+        
+        <button class="btn-primary" onclick="showView('registrationView')">📝 ลงทะเบียนเข้างาน</button>
+        <button class="btn-secondary" onclick="showView('searchView')">🔍 ค้นหาโต๊ะที่นั่ง</button>
+        
+        <div id="data-status">กำลังซิงค์ข้อมูล...</div>
+    </div>
+
+    <!-- ================= หน้าที่ 2: ลงทะเบียน ================= -->
+    <div class="container" id="registrationView" style="display: none;">
+        <h2>ลงทะเบียนเข้างาน</h2>
+        <p>เช็คอินเพื่อเข้างาน พร้อมดูเลขโต๊ะที่นั่ง</p>
+        
+        <div class="form-group">
+            <label>ชื่อจริง</label>
+            <input type="text" id="regFirstName" placeholder="ระบุชื่อจริง">
+        </div>
+
+        <div class="form-group">
+            <label>นามสกุล</label>
+            <input type="text" id="regLastName" placeholder="ระบุนามสกุล (เว้นว่างได้)">
+        </div>
+
+        <div class="form-group">
+            <label>หรือ เบอร์โทรศัพท์</label>
+            <input type="tel" id="regPhone" placeholder="เช่น 0812345678" onkeypress="handleRegKeyPress(event)">
+        </div>
+        
+        <button class="btn-primary" id="submitRegBtn" onclick="processRegistration()">ลงทะเบียน และแสดงเลขโต๊ะ</button>
+        <button class="btn-secondary" onclick="showView('menuView')">ย้อนกลับหน้าหลัก</button>
+        
+        <div class="error-message" id="errorMsgReg">กรุณากรอกชื่อ หรือ เบอร์โทรศัพท์</div>
+        
+        <div class="result-card" id="resultCardReg">
+            <div class="result-name" id="resRegName">คุณ ...</div>
+            <div id="resRegTable">โต๊ะหมายเลข: ...</div>
+        </div>
+    </div>
+
+    <!-- ================= หน้าที่ 3: ค้นหาโต๊ะ ================= -->
+    <div class="container" id="searchView" style="display: none;">
+        <h2>ค้นหาโต๊ะที่นั่ง</h2>
+        <p>พิมพ์ชื่อ หรือ นามสกุล เพื่อเช็คเลขโต๊ะ</p>
+        
+        <div class="form-group">
+            <input type="text" id="searchInput" placeholder="เช่น เอบี หรือ สมชาย" onkeypress="handleSearchKeyPress(event)">
+        </div>
+        
+        <button class="btn-primary" id="submitSearchBtn" onclick="processSearch()">ค้นหาโต๊ะ</button>
+        <button class="btn-secondary" onclick="showView('menuView')">ย้อนกลับหน้าหลัก</button>
+
+        <div class="error-message" id="errorMsgSearch">ไม่พบชื่อนี้ กรุณาตรวจสอบตัวสะกด</div>
+        
+        <div class="result-card" id="resultCardSearch">
+            <div class="result-name" id="resSearchName">คุณ ...</div>
+            <div class="result-table" id="resSearchTable">โต๊ะหมายเลข: ...</div>
+        </div>
+    </div>
+
+    <script>
+        // URL สำหรับบันทึกข้อมูล (อัปเดตเป็นลิงก์ล่าสุด)
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx8ZMQr5tNUz4v3P-NPkvzknpncSCppwQG2vfsVSjezP9RA29Dk7yWrr80K64H9jpH2/exec';
+        
+        // URL สำหรับดึงข้อมูลรายชื่อจาก Google Sheets
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4X9Ko3pISDaG_s2afj1kU1ZKNCwWbqHilCH8uVNSJJV_NqCWiEEKKCvKD-63RxWTMLglJ9Dsu6VDW/pub?output=csv';
+        const sheetId = sheetUrl.split('/d/e/')[1].split('/')[0];
+        const jsonQueryUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/gviz/tq?tqx=out:json`;
+
+        let guestList = []; // จะถูกเติมข้อมูลอัตโนมัติจาก Google Sheets
+
+        // ================= ระบบดึงข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ =================
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(loadDataFromSheet);
+
+        function loadDataFromSheet() {
+            fetch(jsonQueryUrl)
+                .then(response => response.text())
+                .then(data => {
+                    const jsonString = data.match(/google\.visualization\.Query\.setResponse\(([\s\S\w\W]*)\);/)[1];
+                    const jsonObj = JSON.parse(jsonString);
+                    const rows = jsonObj.table.rows;
+                    const cols = jsonObj.table.cols;
+                    
+                    guestList = rows.map(row => {
+                        let rawRow = {};
+                        row.c.forEach((cell, index) => {
+                            let colName = cols[index] && cols[index].label ? cols[index].label : 'col_' + index;
+                            rawRow[colName] = cell && cell.v !== null ? cell.v : '';
+                        });
+                        return normalizeData(rawRow);
+                    });
+                    
+                    document.getElementById('data-status').innerText = `✓ ฐานข้อมูลพร้อมใช้งาน (${guestList.length} รายชื่อ)`;
+                    document.getElementById('data-status').style.color = '#28a745';
+                })
+                .catch(error => {
+                    document.getElementById('data-status').innerText = '⚠ ไม่สามารถซิงค์ข้อมูลโต๊ะได้';
+                    document.getElementById('data-status').style.color = '#dc3545';
+                });
+        }
+
+        // จัดการแปลงหัวข้อคอลัมน์ (รองรับทั้งภาษาไทยและอังกฤษ)
+        function normalizeData(rawRow) {
+            let normalized = { firstName: '', lastName: '', table: '', phone: '' };
+            for (let key in rawRow) {
+                let cleanKey = key.trim().toLowerCase();
+                let value = rawRow[key].toString().trim();
+
+                if (cleanKey.includes('firstname') || cleanKey.includes('ชื่อจริง') || cleanKey === 'ชื่อ') {
+                    normalized.firstName = value;
+                } else if (cleanKey.includes('lastname') || cleanKey.includes('นามสกุล')) {
+                    normalized.lastName = value;
+                } else if (cleanKey.includes('table') || cleanKey.includes('โต๊ะ') || cleanKey.includes('ที่นั่ง') || cleanKey.includes('เลขโต๊ะ')) {
+                    normalized.table = value;
+                } else if (cleanKey.includes('phone') || cleanKey.includes('เบอร์')) {
+                    normalized.phone = value;
+                }
+            }
+            return normalized;
+        }
+
+        // ================= ฟังก์ชันสลับหน้าจอ =================
+        function showView(viewId) {
+            document.getElementById('menuView').style.display = 'none';
+            document.getElementById('registrationView').style.display = 'none';
+            document.getElementById('searchView').style.display = 'none';
+            
+            document.getElementById(viewId).style.display = 'block';
+
+            document.getElementById('regFirstName').value = '';
+            document.getElementById('regLastName').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('searchInput').value = '';
+            
+            document.getElementById('errorMsgReg').style.display = 'none';
+            document.getElementById('resultCardReg').style.display = 'none';
+            document.getElementById('errorMsgSearch').style.display = 'none';
+            document.getElementById('resultCardSearch').style.display = 'none';
+        }
+
+        function handleRegKeyPress(event) { if (event.key === "Enter") processRegistration(); }
+        function handleSearchKeyPress(event) { if (event.key === "Enter") processSearch(); }
+
+        // ================= ฟังก์ชัน: ลงทะเบียน =================
+        function processRegistration() {
+            const fNameInput = document.getElementById('regFirstName').value.trim();
+            const lNameInput = document.getElementById('regLastName').value.trim();
+            const phoneInput = document.getElementById('regPhone').value.trim();
+            
+            const errorMsg = document.getElementById('errorMsgReg');
+            const resultCard = document.getElementById('resultCardReg');
+            const submitBtn = document.getElementById('submitRegBtn');
+
+            errorMsg.style.display = 'none';
+            resultCard.style.display = 'none';
+
+            if (!fNameInput && !phoneInput) {
+                errorMsg.innerText = 'กรุณากรอก "ชื่อ" หรือ "เบอร์โทรศัพท์" อย่างน้อย 1 ช่อง';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'กำลังลงทะเบียน...';
+
+            setTimeout(() => {
+                const cleanNameQuery = (fNameInput + lNameInput).replace(/\s+/g, '').toLowerCase();
+                const fNameLower = fNameInput.toLowerCase();
+                
+                const foundGuests = guestList.filter(guest => {
+                    const gFullName = (guest.firstName + guest.lastName).replace(/\s+/g, '').toLowerCase();
+                    const matchPhone = phoneInput !== '' && guest.phone === phoneInput;
+                    const matchName = cleanNameQuery !== '' && (guest.firstName.toLowerCase().includes(fNameLower) || gFullName.includes(cleanNameQuery));
+                    return matchPhone || matchName;
+                });
+
+                let displayFirstName = fNameInput || "-";
+                let displayLastName = lNameInput || "";
+                let displayPhone = phoneInput || "-";
+                let displayTable = "ไม่มีข้อมูล";
+
+                if (foundGuests.length > 0) {
+                    const guest = foundGuests[0]; 
+                    displayFirstName = guest.firstName;
+                    displayLastName = guest.lastName;
+                    displayPhone = phoneInput || guest.phone || "-";
+                    displayTable = guest.table;
+                    
+                    document.getElementById('resRegName').innerText = `คุณ ${displayFirstName} ${displayLastName}`;
+                    document.getElementById('resRegTable').innerHTML = `<div class="result-table">โต๊ะหมายเลข: ${displayTable}</div>`;
+                } else {
+                    let showName = (displayFirstName !== "-") ? `คุณ ${displayFirstName} ${displayLastName}` : `เบอร์โทรศัพท์: ${displayPhone}`;
+                    document.getElementById('resRegName').innerText = showName;
+                    document.getElementById('resRegTable').innerHTML = `<div class="result-no-table">✓ ลงทะเบียนสำเร็จ<br>แต่ไม่พบข้อมูลโต๊ะที่นั่งในระบบ</div>`;
+                }
+                
+                resultCard.style.display = 'block';
+
+                const formData = new URLSearchParams();
+                formData.append('firstName', displayFirstName);
+                formData.append('lastName', displayLastName);
+                formData.append('phone', displayPhone);
+                formData.append('table', displayTable);
+
+                fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'ลงทะเบียน และแสดงเลขโต๊ะ';
+            }, 600);
+        }
+
+        // ================= ฟังก์ชัน: ค้นหาโต๊ะ =================
+        function processSearch() {
+            const searchInput = document.getElementById('searchInput').value.trim().toLowerCase();
+            const errorMsg = document.getElementById('errorMsgSearch');
+            const resultCard = document.getElementById('resultCardSearch');
+            const submitBtn = document.getElementById('submitSearchBtn');
+
+            errorMsg.style.display = 'none';
+            resultCard.style.display = 'none';
+
+            if (!searchInput) {
+                errorMsg.innerText = 'กรุณากรอกชื่อก่อนกดค้นหา';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'กำลังค้นหา...';
+
+            setTimeout(() => {
+                const cleanQuery = searchInput.replace(/\s+/g, '');
+                
+                const foundGuests = guestList.filter(guest => {
+                    const gFullName = (guest.firstName + guest.lastName).replace(/\s+/g, '').toLowerCase();
+                    return guest.firstName.toLowerCase().includes(searchInput) || 
+                           guest.lastName.toLowerCase().includes(searchInput) ||
+                           gFullName.includes(cleanQuery);
+                });
+
+                if (foundGuests.length > 0) {
+                    const guest = foundGuests[0]; 
+                    document.getElementById('resSearchName').innerText = `คุณ ${guest.firstName} ${guest.lastName}`;
+                    document.getElementById('resSearchTable').innerText = `โต๊ะหมายเลข: ${guest.table}`;
+                    resultCard.style.display = 'block';
+                } else {
+                    errorMsg.innerText = 'ไม่พบชื่อนี้ในระบบ';
+                    errorMsg.style.display = 'block';
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'ค้นหาโต๊ะ';
+            }, 400);
+        }
+    </script>
+</body>
+</html>
