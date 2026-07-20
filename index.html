@@ -35,6 +35,12 @@
             max-height: 8vh; 
             max-width: 80%;
             object-fit: contain;
+            cursor: pointer; /* ทำให้มีรูปนิ้วชี้เมื่อเอาเมาส์ไปวางบนโลโก้ */
+            transition: transform 0.2s;
+        }
+        
+        .logo:active {
+            transform: scale(0.95); /* เอฟเฟกต์ยุบตัวเล็กน้อยตอนกด */
         }
 
         .tagline {
@@ -159,9 +165,9 @@
 </head>
 <body>
 
-    <!-- ส่วน Header: โลโก้ และ Tagline -->
+    <!-- ส่วน Header: โลโก้ (กดเพื่อกลับหน้าแรก) และ Tagline -->
     <div class="header-container">
-        <img src="ธอส logo@4x.png" alt="โลโก้ ธอส" class="logo">
+        <img src="ธอส logo@4x.png" alt="โลโก้ ธอส" class="logo" onclick="showView('menuView')" title="กลับหน้าแรก">
         <img src="Tagline@4x.png" alt="Beyond Housing Bank" class="tagline">
     </div>
 
@@ -188,11 +194,11 @@
 
         <div class="form-group">
             <label>นามสกุล</label>
-            <input type="text" id="regLastName" placeholder="ระบุนามสกุล (เว้นว่างได้)">
+            <input type="text" id="regLastName" placeholder="ระบุนามสกุล">
         </div>
 
         <div class="form-group">
-            <label>หรือ เบอร์โทรศัพท์</label>
+            <label>เบอร์โทรศัพท์</label>
             <input type="tel" id="regPhone" placeholder="เช่น 0812345678" onkeypress="handleRegKeyPress(event)">
         </div>
         
