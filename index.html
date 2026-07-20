@@ -251,7 +251,8 @@
                 skipEmptyLines: true,
                 complete: function(results) {
                     guestList = results.data.map(row => normalizeData(row));
-                    document.getElementById('data-status').innerText = `✓ ฐานข้อมูลพร้อมใช้งาน (${guestList.length} รายชื่อ)`;
+                    // อัปเดตข้อความตรงนี้เป็น Database Updated
+                    document.getElementById('data-status').innerText = '✓ Database Updated';
                     document.getElementById('data-status').style.color = '#28a745';
                 },
                 error: function(err) {
