@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ลงทะเบียน & ค้นหาโต๊ะที่นั่ง</title>
     <style>
-        /* ================= จัดการให้พอดีจอ 100% ================= */
+        /* ================= จัดการความสูงพอดีจอและพื้นหลัง ================= */
         html, body {
             margin: 0;
             padding: 0;
             height: 100%;
             height: 100dvh;
             overflow: hidden; 
-            background-color: #ef5323; 
+            background-color: #ef5323; /* พื้นหลังสีส้ม */
             font-family: 'Kanit', sans-serif, Arial;
             display: flex;
             flex-direction: column;
@@ -21,30 +21,49 @@
             box-sizing: border-box;
         }
 
-        .logo {
-            max-height: 12vh; 
-            max-width: 80%;
+        /* ================= ส่วน Header โลโก้ + Tagline ================= */
+        .header-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             margin-bottom: 2vh;
+            position: relative;
+            z-index: 10; 
+        }
+
+        .logo {
+            max-height: 8vh; 
+            max-width: 80%;
             object-fit: contain;
         }
 
+        .tagline {
+            max-height: 3.5vh;
+            max-width: 75%;
+            margin-top: 6px;
+            object-fit: contain;
+            mix-blend-mode: screen; 
+        }
+
+        /* ================= กล่องคอนเทนต์หลัก ================= */
         .container {
             background: #ffffff; 
             padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
             width: 90%;
             max-width: 450px;
-            max-height: 80vh; 
+            max-height: 75vh; 
             overflow-y: auto; 
             text-align: center;
             box-sizing: border-box;
             position: relative;
+            z-index: 10; 
         }
 
         .container::-webkit-scrollbar { width: 0px; background: transparent; }
 
-        /* ================= สไตล์องค์ประกอบต่างๆ ================= */
+        /* ================= สไตล์องค์ประกอบฟอร์ม ================= */
         h2 { color: #2f307c; margin-top: 0; margin-bottom: 5px; font-size: 1.6rem; }
         p { color: #666666; font-size: 0.9rem; margin-bottom: 20px; }
 
@@ -136,13 +155,15 @@
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- เปลี่ยนมาใช้ PapaParse ซึ่งเสถียรที่สุดสำหรับการดึง CSV บน GitHub Pages -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
-    <!-- รูปภาพโลโก้ ธอส -->
-    <img src="ธอส logo@4x.png" alt="โลโก้ ธอส" class="logo">
+    <!-- ส่วน Header: โลโก้ และ Tagline -->
+    <div class="header-container">
+        <img src="ธอส logo@4x.png" alt="โลโก้ ธอส" class="logo">
+        <img src="Tagline@4x.png" alt="Beyond Housing Bank" class="tagline">
+    </div>
 
     <!-- ================= หน้าที่ 1: เมนูหลัก ================= -->
     <div class="container" id="menuView">
@@ -207,15 +228,12 @@
     </div>
 
     <script>
-        // URL สำหรับบันทึกข้อมูลเข้า Google Sheets
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx8ZMQr5tNUz4v3P-NPkvzknpncSCppwQG2vfsVSjezP9RA29Dk7yWrr80K64H9jpH2/exec';
         
-        // URL สำหรับดึงข้อมูลรายชื่อจาก Google Sheets (ลิงก์ CSV โดยตรง)
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4X9Ko3pISDaG_s2afj1kU1ZKNCwWbqHilCH8uVNSJJV_NqCWiEEKKCvKD-63RxWTMLglJ9Dsu6VDW/pub?output=csv';
 
         let guestList = []; 
 
-        // โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
         window.onload = function() {
             loadDataFromSheet();
         };
@@ -233,12 +251,10 @@
                 error: function(err) {
                     document.getElementById('data-status').innerText = '⚠ ไม่สามารถซิงค์ข้อมูลโต๊ะได้';
                     document.getElementById('data-status').style.color = '#dc3545';
-                    console.error("CSV Fetch Error:", err);
                 }
             });
         }
 
-        // แปลงหัวข้อคอลัมน์ (รองรับทั้งภาษาไทยและอังกฤษ)
         function normalizeData(rawRow) {
             let normalized = { firstName: '', lastName: '', table: '', phone: '' };
             for (let key in rawRow) {
@@ -258,7 +274,6 @@
             return normalized;
         }
 
-        // ================= ฟังก์ชันสลับหน้าจอ =================
         function showView(viewId) {
             document.getElementById('menuView').style.display = 'none';
             document.getElementById('registrationView').style.display = 'none';
@@ -280,7 +295,6 @@
         function handleRegKeyPress(event) { if (event.key === "Enter") processRegistration(); }
         function handleSearchKeyPress(event) { if (event.key === "Enter") processSearch(); }
 
-        // ================= ฟังก์ชัน: ลงทะเบียน =================
         function processRegistration() {
             const fNameInput = document.getElementById('regFirstName').value.trim();
             const lNameInput = document.getElementById('regLastName').value.trim();
@@ -352,7 +366,6 @@
             }, 600);
         }
 
-        // ================= ฟังก์ชัน: ค้นหาโต๊ะ =================
         function processSearch() {
             const searchInput = document.getElementById('searchInput').value.trim().toLowerCase();
             const errorMsg = document.getElementById('errorMsgSearch');
